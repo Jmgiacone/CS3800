@@ -1,0 +1,148 @@
+Script started on Mon 08 Feb 2016 11:54:31 PM CST
+jmgv27@rc01xcs213:~/SDRIVE/CS3800/hw1$ ./homework1.sh 
+[H[JWelcome
+------------------------------------------------
+Please select a menu option:
+1 - Print the Ancestry tree of the current process
+2 - See who is online
+3 - See all processes a user is running
+4 - Exit
+1
+ 
+The ancestry tree for this process is...
+ 
+ 
+24017
+  |
+23992
+  |
+23991
+  |
+23990
+  |
+6171
+  |
+6170
+  |
+6110
+  |
+7274
+  |
+1
+ 
+Please select a menu option:
+1 - Print the Ancestry tree of the current process
+2 - See who is online
+3 - See all processes a user is running
+4 - Exit
+2
+ 
+Users currently online are: 
+aht5zb
+akk5xd
+davem
+jmgv27
+mrghx4
+ 
+Please select a menu option:
+1 - Print the Ancestry tree of the current process
+2 - See who is online
+3 - See all processes a user is running
+4 - Exit
+3
+ 
+1) aht5zb
+2) akk5xd
+3) davem
+4) jmgv27
+5) mrghx4
+Please choose a user from the above list
+4
+ 
+You chose jmgv27
+ 
+1 S jmgv27    6123     1 TS   19 - 11267 fuse_d 22:03 ?        00:00:20 /usr/bin/perl /usr/bin/dfshack /mnt/dfs/jmgv27/Users/jmgv27 /nethome/users/jmgv27 -o nonempty,dev,suid
+5 S jmgv27    6170  6110 TS   19 - 40946 poll_s 22:03 ?        00:00:00 sshd: jmgv27@pts/112
+0 S jmgv27    6171  6170 TS   19 -  8169 wait   22:03 pts/112  00:00:00 -bash
+0 S jmgv27   23990  6171 TS   19 -  4479 n_tty_ 23:54 pts/112  00:00:00 script mySession1.txt
+1 S jmgv27   23991 23990 TS   19 -  4483 n_tty_ 23:54 pts/112  00:00:00 script mySession1.txt
+0 S jmgv27   23992 23991 TS   19 -  8136 wait   23:54 pts/32   00:00:00 bash -i
+1 S jmgv27   24017 23992 TS   19 -  8136 wait   23:54 pts/32   00:00:00 bash -i
+0 R jmgv27   24067 24017 TS   19 -  6246 -      23:54 pts/32   00:00:00 ps -acefl
+ 
+Please select a menu option:
+1 - Print the Ancestry tree of the current process
+2 - See who is online
+3 - See all processes a user is running
+4 - Exit
+2
+ 
+Users currently online are: 
+aht5zb
+akk5xd
+davem
+jmgv27
+mrghx4
+ 
+Please select a menu option:
+1 - Print the Ancestry tree of the current process
+2 - See who is online
+3 - See all processes a user is running
+4 - Exit
+1
+ 
+The ancestry tree for this process is...
+ 
+ 
+24017
+  |
+23992
+  |
+23991
+  |
+23990
+  |
+6171
+  |
+6170
+  |
+6110
+  |
+7274
+  |
+1
+ 
+Please select a menu option:
+1 - Print the Ancestry tree of the current process
+2 - See who is online
+3 - See all processes a user is running
+4 - Exit
+3
+ 
+1) aht5zb
+2) akk5xd
+3) davem
+4) jmgv27
+5) mrghx4
+Please choose a user from the above list
+3
+ 
+You chose davem
+ 
+1 S davem     6545     1 TS   19 - 11266 fuse_d 08:48 ?        00:00:00 /usr/bin/perl /usr/bin/dfshack /mnt/dfs/davem/Users/davem /nethome/users/davem -o nonempty,dev,suid
+5 S davem     6625  6535 TS   19 - 40946 poll_s 08:48 ?        00:00:00 sshd: davem@pts/76  
+0 S davem     6626  6625 TS   19 -  8165 n_tty_ 08:48 pts/76   00:00:00 -bash
+ 
+Please select a menu option:
+1 - Print the Ancestry tree of the current process
+2 - See who is online
+3 - See all processes a user is running
+4 - Exit
+4
+ 
+Thank you for using this program!
+ 
+jmgv27@rc01xcs213:~/SDRIVE/CS3800/hw1$ exit
+exit
+
+Script done on Mon 08 Feb 2016 11:55:14 PM CST
