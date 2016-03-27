@@ -7,6 +7,7 @@ using std::cout;
 using std::cerr;
 using std::endl;
 using std::string;
+using std::stoi;
 
 bool checkParameters(int argc, char* argv[]);
 
@@ -23,7 +24,13 @@ int main(int argc, char* argv[])
   if(checkParameters(argc, argv))
   {
     //Everything is cool
+    programListIn.open(argv[1]);
+    programTraceIn.open(argv[2]);
+    pageSize = stoi(argv[3]);
+    replacementAlgorithm = argv[4];
+    pagingMethod = argv[5];
 
+    //We're ready to roll
   }
 
   return 0;
