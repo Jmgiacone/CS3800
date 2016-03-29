@@ -1,15 +1,17 @@
 #include <iostream>
 #include <fstream>
 #include <cmath>
-#include <string>
+#include <cstring>
 
 using std::cout;
 using std::cerr;
 using std::endl;
 using std::string;
 using std::stoi;
+using std::ifstream;
+using std::ofstream;
 
-bool checkParameters(int argc, char* argv[]);
+bool checkParameters(int argc, char* argv[],ifstream& programListIn, ifstream& programTraceIn, int& pageSize, string replacementAlgorithm, string pagingMethod);
 
 const string REPLACEMENT_ALGORITHMS[3] = {"lru", "clock", "fifo"},
              PAGING_METHODS[2] = {"d", "p"};
@@ -21,42 +23,32 @@ int main(int argc, char* argv[])
   int pageSize;
   string replacementAlgorithm, pagingMethod;
 
-  if(checkParameters(argc, argv))
+  if(checkParameters(argc, argv, programListIn, programTraceIn, pageSize, replacementAlgorithm, pagingMethod))
   {
-    //Everything is cool
-    programListIn.open(argv[1]);
-    programTraceIn.open(argv[2]);
-    pageSize = stoi(argv[3]);
-    replacementAlgorithm = argv[4];
-    pagingMethod = argv[5];
-
     //We're ready to roll
   }
 
   return 0;
 }
 
-bool checkParameters(int argc, char* argv[])
+bool checkParameters(int argc, char* argv[], ifstream& programListIn, ifstream& programTraceIn, int& pageSize, string replacementAlgorithm, string pagingMethod)
 {
-  std::ifstream programListIn, programTraceIn;
-  std::ofstream fileOut;
   bool pageSizeGood = false, replacementAlgorithmGood = false, pagingMethodGood = false;
-  int pageSize;
-  string replacementAlgorithm, pagingMethod;
 
   //Valid number of arguments, but some may not make sense
   if(argc == 6)
   {
     //Check to see if programList exists
-    programListIn.open(argv[1]);
+    string filename = argv[1];
+    programListIn.open(filename + ".txt");
 
     if(programListIn)
     {
       //File1 exists
 
-
       //Check to see if file2 exists
-      programTraceIn.open(argv[2]);
+      filename = argv[2];
+      programTraceIn.open(filename + ".txt");
 
       if(programTraceIn)
       {
