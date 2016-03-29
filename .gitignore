@@ -1,0 +1,5 @@
+*.out
+*.o
+hw2/.idea/*
+*.txt
+hw2/driver
