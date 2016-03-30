@@ -2,6 +2,8 @@
 #include <fstream>
 #include <cmath>
 #include <cstring>
+#include <vector>
+#include "Page.h"
 
 using std::cout;
 using std::cerr;
@@ -15,19 +17,43 @@ bool checkParameters(int argc, char* argv[],ifstream& programListIn, ifstream& p
 
 const string REPLACEMENT_ALGORITHMS[3] = {"lru", "clock", "fifo"},
              PAGING_METHODS[2] = {"d", "p"};
-const int NUM_REPLACEMENT_ALGORITHMS = 3, NUM_PAGING_METHODS = 2;
+const int NUM_REPLACEMENT_ALGORITHMS = 3, NUM_PAGING_METHODS = 2, AVAILABLE_FRAMES = 512;
 int main(int argc, char* argv[])
 {
   std::ifstream programListIn, programTraceIn;
   std::ofstream fileOut;
-  int pageSize;
+  int pageSize, numFrames, x;
+  int programSizes[10];
   string replacementAlgorithm, pagingMethod;
+  Page** mainPageTable;
+  Page** pageTables[10];
 
   if(checkParameters(argc, argv, programListIn, programTraceIn, pageSize, replacementAlgorithm, pagingMethod))
   {
     //We're ready to roll
+    numFrames = AVAILABLE_FRAMES / pageSize;
+
+    //Main page table is an array of pointers to pages
+    mainPageTable = new Page*[numFrames];
+
+    for(int i = 0; i < 10; i++)
+    {
+      //Skip first part
+      programListIn >> x;
+
+      //Grap program size
+      programListIn >> x;
+
+      programSizes[i] = std::ceil(static_cast<double>(x) / pageSize);
+      //Page table contains as many entries as pages needed
+      pageTables[i] = new Page*[programSizes[i]];
+    }
   }
 
+
+  //Close filestreams and delete data
+  programListIn.close();
+  programTraceIn.close();
   return 0;
 }
 
