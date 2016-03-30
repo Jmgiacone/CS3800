@@ -17,16 +17,16 @@ bool checkParameters(int argc, char* argv[],ifstream& programListIn, ifstream& p
 
 const string REPLACEMENT_ALGORITHMS[3] = {"lru", "clock", "fifo"},
              PAGING_METHODS[2] = {"d", "p"};
-const int NUM_REPLACEMENT_ALGORITHMS = 3, NUM_PAGING_METHODS = 2, AVAILABLE_FRAMES = 512;
+const int NUM_REPLACEMENT_ALGORITHMS = 3, NUM_PAGING_METHODS = 2, AVAILABLE_FRAMES = 512, NUM_PROGRAMS = 10;
 int main(int argc, char* argv[])
 {
   std::ifstream programListIn, programTraceIn;
   std::ofstream fileOut;
   int pageSize, numFrames, x;
-  int programSizes[10];
+  int programSizes[NUM_PROGRAMS];
   string replacementAlgorithm, pagingMethod;
   Page** mainPageTable;
-  Page** pageTables[10];
+  Page** pageTables[NUM_PROGRAMS];
 
   if(checkParameters(argc, argv, programListIn, programTraceIn, pageSize, replacementAlgorithm, pagingMethod))
   {
@@ -36,12 +36,12 @@ int main(int argc, char* argv[])
     //Main page table is an array of pointers to pages
     mainPageTable = new Page*[numFrames];
 
-    for(int i = 0; i < 10; i++)
+    for(int i = 0; i < NUM_PROGRAMS; i++)
     {
       //Skip first part
       programListIn >> x;
 
-      //Grap program size
+      //Grab program size
       programListIn >> x;
 
       programSizes[i] = std::ceil(static_cast<double>(x) / pageSize);
