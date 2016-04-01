@@ -13,8 +13,7 @@ class Page
     bool useBit;
     unsigned long long timestamp;
   public:
-    Page();
-    Page(int owner, int logicalPage) : ownerProgram(owner), logicalPageNum(logicalPage), useBit(false), timestamp(0) {}
+    Page(int owner, int logicalPage, unsigned long long stamp) : ownerProgram(owner), logicalPageNum(logicalPage), useBit(false), timestamp(stamp) {}
     const int getOwnerProgram() {return ownerProgram;}
     const int getLogicalPageNum() {return logicalPageNum;}
     bool getUseBit() {return useBit;}
