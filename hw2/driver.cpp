@@ -29,83 +29,85 @@ int main(int argc, char* argv[])
   Page** mainPageTable;
   Page** pageTables[NUM_PROGRAMS];
 
-  if(checkParameters(argc, argv, programListIn, programTraceIn, pageSize, replacementAlgorithm, pagingMethod))
+  if(!checkParameters(argc, argv, programListIn, programTraceIn, pageSize, replacementAlgorithm, pagingMethod))
   {
-    //We're ready to roll
-    numFrames = AVAILABLE_FRAMES / pageSize;
+    //Error condition
+    return -1;
+  }
 
-    //Main page table is an array of pointers to pages
-    mainPageTable = new Page*[numFrames];
+  //We're ready to roll
+  numFrames = AVAILABLE_FRAMES / pageSize;
 
-    for(int i = 0; i < NUM_PROGRAMS; i++)
+  //Main page table is an array of pointers to pages
+  mainPageTable = new Page*[numFrames];
+
+  for(int i = 0; i < NUM_PROGRAMS; i++)
+  {
+    //Skip first part
+    programListIn >> x;
+
+    //Grab program size
+    programListIn >> x;
+
+    //Program i needs size/pageSize pages
+    programSizes[i] = std::ceil(static_cast<double>(x) / pageSize);
+
+    //Page table contains as many entries as pages needed
+    pageTables[i] = new Page*[programSizes[i]];
+
+    //Set each element to NULL
+    for(int j = 0; j < programSizes[i]; j++)
     {
-      //Skip first part
-      programListIn >> x;
-
-      //Grab program size
-      programListIn >> x;
-
-      //Program i needs size/pageSize pages
-      programSizes[i] = std::ceil(static_cast<double>(x) / pageSize);
-
-      //Page table contains as many entries as pages needed
-      pageTables[i] = new Page*[programSizes[i]];
-
-      //Set each element to NULL
-      for(int j = 0; j < programSizes[i]; j++)
-      {
-        pageTables[i][j] = NULL;
-      }
-
-      //Time to pre-load each program's pages
-      pagesPerProgram = numFrames / NUM_PROGRAMS;
-
-      //If program i needs fewer than pagesPerProgram, only loop that many times
-      x = programSizes[i] < pagesPerProgram ? programSizes[i] : pagesPerProgram;
-
-      for (int j = 0; j < x; j++)
-      {
-        tmp = i * pagesPerProgram + j;
-        mainPageTable[tmp] = new Page(i, j, timestamp);
-        pagesInMainMemory++;
-        pageTables[i][j] = mainPageTable[i * pagesPerProgram + j];
-        timestamp++;
-      }
+      pageTables[i][j] = NULL;
     }
 
-    //Start reading in the program trace
-    while(!programTraceIn.eof())
+    //Time to pre-load each program's pages
+    pagesPerProgram = numFrames / NUM_PROGRAMS;
+
+    //If program i needs fewer than pagesPerProgram, only loop that many times
+    x = programSizes[i] < pagesPerProgram ? programSizes[i] : pagesPerProgram;
+
+    for (int j = 0; j < x; j++)
     {
-      programTraceIn >> requestingProgram;
-      programTraceIn >> requestedPage;
-
-      //Purposeful integer division, get floor of page
-      requestedPage /= pageSize;
-
-      //Page isn't resident
-      if(pageTables[requestingProgram][requestedPage] == NULL)
-      {
-        pageFaults++;
-
-        //There's space in main memory
-        if(pagesInMainMemory != numFrames)
-        {
-          //Simply put the page at the end of the main table
-          mainPageTable[pagesInMainMemory-1] = new Page(requestingProgram, requestedPage, timestamp);
-
-          //Set the pointer
-          pageTables[requestingProgram][requestedPage] = mainPageTable[pagesInMainMemory-1];
-          timestamp++;
-          pagesInMainMemory++;
-        }
-        else
-        {
-          //Run a replacement algorithm
-        }
-      }
+      tmp = i * pagesPerProgram + j;
+      mainPageTable[tmp] = new Page(i, j, timestamp);
+      pagesInMainMemory++;
+      pageTables[i][j] = mainPageTable[i * pagesPerProgram + j];
+      timestamp++;
     }
   }
 
+  //Start reading in the program trace
+  while(!programTraceIn.eof())
+  {
+    programTraceIn >> requestingProgram;
+    programTraceIn >> requestedPage;
+
+    //Purposeful integer division, get floor of page
+    requestedPage /= pageSize;
+
+    //Page isn't resident
+    if(pageTables[requestingProgram][requestedPage] == NULL)
+    {
+      pageFaults++;
+
+      //There's space in main memory
+      if(pagesInMainMemory != numFrames)
+      {
+        //Simply put the page at the end of the main table
+        mainPageTable[pagesInMainMemory-1] = new Page(requestingProgram, requestedPage, timestamp);
+
+        //Set the pointer
+        pageTables[requestingProgram][requestedPage] = mainPageTable[pagesInMainMemory-1];
+        timestamp++;
+        pagesInMainMemory++;
+      }
+      else
+      {
+        //Run a replacement algorithm
+      }
+    }
+  }
 
   //Close filestreams and delete data
   programListIn.close();
