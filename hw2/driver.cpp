@@ -22,7 +22,8 @@ int main(int argc, char* argv[])
 {
   std::ifstream programListIn, programTraceIn;
   std::ofstream fileOut;
-  int pageSize, numFrames, x;
+  unsigned long long timestamp = 0;
+  int pageSize, pagesPerProgram, numFrames, x, tmp, requestingProgram, requestedPage, pagesInMainMemory = 0, pageFaults = 0;
   int programSizes[NUM_PROGRAMS];
   string replacementAlgorithm, pagingMethod;
   Page** mainPageTable;
@@ -44,9 +45,64 @@ int main(int argc, char* argv[])
       //Grab program size
       programListIn >> x;
 
+      //Program i needs size/pageSize pages
       programSizes[i] = std::ceil(static_cast<double>(x) / pageSize);
+
       //Page table contains as many entries as pages needed
       pageTables[i] = new Page*[programSizes[i]];
+
+      //Set each element to NULL
+      for(int j = 0; j < programSizes[i]; j++)
+      {
+        pageTables[i][j] = NULL;
+      }
+
+      //Time to pre-load each program's pages
+      pagesPerProgram = numFrames / NUM_PROGRAMS;
+
+      //If program i needs fewer than pagesPerProgram, only loop that many times
+      x = programSizes[i] < pagesPerProgram ? programSizes[i] : pagesPerProgram;
+
+      for (int j = 0; j < x; j++)
+      {
+        tmp = i * pagesPerProgram + j;
+        mainPageTable[tmp] = new Page(i, j, timestamp);
+        pagesInMainMemory++;
+        pageTables[i][j] = mainPageTable[i * pagesPerProgram + j];
+        timestamp++;
+      }
+    }
+
+    //Start reading in the program trace
+    while(!programTraceIn.eof())
+    {
+      programTraceIn >> requestingProgram;
+      programTraceIn >> requestedPage;
+
+      //Purposeful integer division, get floor of page
+      requestedPage /= pageSize;
+
+      //Page isn't resident
+      if(pageTables[requestingProgram][requestedPage] == NULL)
+      {
+        pageFaults++;
+
+        //There's space in main memory
+        if(pagesInMainMemory != numFrames)
+        {
+          //Simply put the page at the end of the main table
+          mainPageTable[pagesInMainMemory-1] = new Page(requestingProgram, requestedPage, timestamp);
+
+          //Set the pointer
+          pageTables[requestingProgram][requestedPage] = mainPageTable[pagesInMainMemory-1];
+          timestamp++;
+          pagesInMainMemory++;
+        }
+        else
+        {
+          //Run a replacement algorithm
+        }
+      }
     }
   }
 
@@ -54,6 +110,12 @@ int main(int argc, char* argv[])
   //Close filestreams and delete data
   programListIn.close();
   programTraceIn.close();
+  for(int i = 0; i < NUM_PROGRAMS; i++)
+  {
+    delete[] pageTables[i];
+  }
+  delete[] mainPageTable;
+
   return 0;
 }
 
