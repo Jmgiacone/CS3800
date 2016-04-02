@@ -4,14 +4,13 @@
 
 #ifndef PAGE_H
 #define PAGE_H
-
-
 class Page
 {
   private:
     const int ownerProgram, logicalPageNum;
     bool useBit;
     unsigned long long timestamp;
+
   public:
     Page(int owner, int logicalPage, unsigned long long stamp) : ownerProgram(owner), logicalPageNum(logicalPage), useBit(false), timestamp(stamp) {}
     int getOwnerProgram() {return ownerProgram;}
@@ -22,6 +21,4 @@ class Page
     void setTimestamp(unsigned long long stamp) {timestamp = stamp;}
 
 };
-
-
 #endif
