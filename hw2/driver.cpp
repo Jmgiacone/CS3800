@@ -13,21 +13,25 @@ using std::stoi;
 using std::ifstream;
 using std::ofstream;
 
-bool checkParameters(int argc, char* argv[],ifstream& programListIn, ifstream& programTraceIn, int& pageSize, string replacementAlgorithm, string pagingMethod);
+bool checkParameters(int argc, char* argv[],ifstream& programListIn, ifstream& programTraceIn, int& pageSize, string& replacementAlgorithm, string& pagingMethod);
+void replacePage(int requestingProgram, int requestedPage);
 
 const string REPLACEMENT_ALGORITHMS[3] = {"lru", "clock", "fifo"},
              PAGING_METHODS[2] = {"d", "p"};
 const int NUM_REPLACEMENT_ALGORITHMS = 3, NUM_PAGING_METHODS = 2, AVAILABLE_FRAMES = 512, NUM_PROGRAMS = 10;
+
+//Global variables
+unsigned long long timestamp = 0;
+int pageSize, pagesPerProgram, numFrames, pageFaults = 0, clockIndex = 0;
+int programSizes[NUM_PROGRAMS];
+string replacementAlgorithm, pagingMethod;
+Page** mainPageTable;
+Page** pageTables[NUM_PROGRAMS];
+
 int main(int argc, char* argv[])
 {
   std::ifstream programListIn, programTraceIn;
-  std::ofstream fileOut;
-  unsigned long long timestamp = 0;
-  int pageSize, pagesPerProgram, numFrames, x, tmp, requestingProgram, requestedPage, pagesInMainMemory = 0, pageFaults = 0;
-  int programSizes[NUM_PROGRAMS];
-  string replacementAlgorithm, pagingMethod;
-  Page** mainPageTable;
-  Page** pageTables[NUM_PROGRAMS];
+  int x, tmp, requestingProgram, requestedPage, pagesInMainMemory = 0;
 
   if(!checkParameters(argc, argv, programListIn, programTraceIn, pageSize, replacementAlgorithm, pagingMethod))
   {
@@ -40,6 +44,11 @@ int main(int argc, char* argv[])
 
   //Main page table is an array of pointers to pages
   mainPageTable = new Page*[numFrames];
+
+  for(int i = 0; i < numFrames; i++)
+  {
+    mainPageTable[i] = NULL;
+  }
 
   for(int i = 0; i < NUM_PROGRAMS; i++)
   {
@@ -71,6 +80,7 @@ int main(int argc, char* argv[])
     {
       tmp = i * pagesPerProgram + j;
       mainPageTable[tmp] = new Page(i, j, timestamp);
+      mainPageTable[tmp]->setUseBit(true);
       pagesInMainMemory++;
       pageTables[i][j] = mainPageTable[i * pagesPerProgram + j];
       timestamp++;
@@ -95,7 +105,8 @@ int main(int argc, char* argv[])
       if(pagesInMainMemory != numFrames)
       {
         //Simply put the page at the end of the main table
-        mainPageTable[pagesInMainMemory-1] = new Page(requestingProgram, requestedPage, timestamp);
+        mainPageTable[pagesInMainMemory] = new Page(requestingProgram, requestedPage, timestamp);
+        mainPageTable[pagesInMainMemory]->setUseBit(true);
 
         //Set the pointer
         pageTables[requestingProgram][requestedPage] = mainPageTable[pagesInMainMemory-1];
@@ -105,6 +116,45 @@ int main(int argc, char* argv[])
       else
       {
         //Run a replacement algorithm
+        replacePage(requestingProgram, requestedPage);
+
+        //If we're using prepaging and requestedPage isn't the last logical page
+        if(pagingMethod == "p" && requestedPage+1 < programSizes[requestingProgram])
+        {
+          //If next page isn't resident
+          if(pageTables[requestingProgram][requestedPage+1] == NULL)
+          {
+            replacePage(requestingProgram, requestedPage + 1);
+          }
+          else
+          {
+            //If using lru, update timestamp
+            if(replacementAlgorithm == "lru")
+            {
+              pageTables[requestingProgram][requestedPage+1]->setTimestamp(timestamp);
+              timestamp++;
+            }
+            else if(replacementAlgorithm == "clock")
+            {
+              pageTables[requestingProgram][requestedPage+1]->setUseBit(true);
+            }
+          }
+        }
+      }
+    }
+    else
+    {
+      //Page is resident
+
+      //If using lru, update timestamp
+      if(replacementAlgorithm == "lru")
+      {
+        pageTables[requestingProgram][requestedPage]->setTimestamp(timestamp);
+        timestamp++;
+      }
+      else if(replacementAlgorithm == "clock")
+      {
+        pageTables[requestingProgram][requestedPage]->setUseBit(true);
       }
     }
   }
@@ -118,10 +168,12 @@ int main(int argc, char* argv[])
   }
   delete[] mainPageTable;
 
+  cout << "There were " << pageFaults << " page faults" << endl;
+
   return 0;
 }
 
-bool checkParameters(int argc, char* argv[], ifstream& programListIn, ifstream& programTraceIn, int& pageSize, string replacementAlgorithm, string pagingMethod)
+bool checkParameters(int argc, char* argv[], ifstream& programListIn, ifstream& programTraceIn, int& pageSize, string& replacementAlgorithm, string& pagingMethod)
 {
   bool pageSizeGood = false, replacementAlgorithmGood = false, pagingMethodGood = false;
 
@@ -253,4 +305,55 @@ bool checkParameters(int argc, char* argv[], ifstream& programListIn, ifstream& 
   cerr << "pagingMethod:         The paging method to use. Must be in the set {p(Prepaging), d(Demand Paging)}" << endl;
 
   return false;
+}
+
+void replacePage(int requestingProgram, int requestedPage)
+{
+  //LRU and FIFO replace pages the same way. The only difference is in how they update timestamps
+  if(replacementAlgorithm == "lru" || replacementAlgorithm == "fifo")
+  {
+    int lruIndex = 0;
+
+    //Find index of page with oldest timestamp
+    for(int i = 0; i < numFrames; i++)
+    {
+      if(mainPageTable[i]->getTimestamp() < mainPageTable[lruIndex]->getTimestamp())
+      {
+        lruIndex = i;
+      }
+    }
+
+    //Replace page at index lruIndex
+    Page p = *mainPageTable[lruIndex];
+
+    //Page p is no longer resident
+    pageTables[p.getOwnerProgram()][p.getLogicalPageNum()] = NULL;
+
+    delete mainPageTable[lruIndex];
+    mainPageTable[lruIndex] = new Page(requestingProgram, requestedPage, timestamp);
+    pageTables[requestingProgram][requestedPage] = mainPageTable[lruIndex];
+    timestamp++;
+  }
+  else if(replacementAlgorithm == "clock")
+  {
+    while(mainPageTable[clockIndex]->getUseBit())
+    {
+      //Clear the bit
+      mainPageTable[clockIndex]->setUseBit(false);
+      clockIndex++;
+      clockIndex %= numFrames;
+    }
+
+    //Replace page at index clockIndex
+    Page p = *mainPageTable[clockIndex];
+
+    //Page p is no longer resident
+    pageTables[p.getOwnerProgram()][p.getLogicalPageNum()] = NULL;
+
+    delete mainPageTable[clockIndex];
+    mainPageTable[clockIndex] = new Page(requestingProgram, requestedPage, timestamp);
+    mainPageTable[clockIndex]->setUseBit(true);
+    pageTables[requestingProgram][requestedPage] = mainPageTable[clockIndex];
+    timestamp++;
+  }
 }
