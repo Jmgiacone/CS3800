@@ -107,11 +107,23 @@ int main(int argc, char* argv[])
       //There's space in main memory
       if(pagesInMainMemory != numFrames)
       {
-        //Simply put the page at the end of the main table
-        mainPageTable[pagesInMainMemory] = new Page(requestingProgram, requestedPage, timestamp);
+        int chosenPage = pagesInMainMemory;
+
+        //Search for the first empty slot
+        for(int i = 0; i < numFrames; i++)
+        {
+          //We found our slot
+          if(mainPageTable[i] == NULL)
+          {
+            chosenPage = i;
+          }
+        }
+
+        //Simply put the page in the blank slot
+        mainPageTable[chosenPage] = new Page(requestingProgram, requestedPage, timestamp);
 
         //Set the pointer
-        pageTables[requestingProgram][requestedPage] = mainPageTable[pagesInMainMemory-1];
+        pageTables[requestingProgram][requestedPage] = mainPageTable[chosenPage];
         timestamp++;
         pagesInMainMemory++;
       }
