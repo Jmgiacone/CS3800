@@ -12,7 +12,8 @@ class Page
     unsigned long long timestamp;
 
   public:
-    Page(int owner, int logicalPage, unsigned long long stamp) : ownerProgram(owner), logicalPageNum(logicalPage), useBit(false), timestamp(stamp) {}
+    Page(int owner, int logicalPage, unsigned long long stamp) : ownerProgram(owner), logicalPageNum(logicalPage),
+                                                                 useBit(true), timestamp(stamp) {}
     int getOwnerProgram() {return ownerProgram;}
     int getLogicalPageNum() {return logicalPageNum;}
     bool getUseBit() {return useBit;}
