@@ -1,5 +1,8 @@
 #include <iostream>
 #include <signal.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <netdb.h>
 
 using std::cout;
 using std::cin;
@@ -13,6 +16,8 @@ int main(int argc, char* argv[])
 {
   string username = "";
   int clientId = 0;
+  struct sockaddr_in host = {AF_INET, htons(PORT_NUMBER)};
+  struct hostent *hostPointer;
 
   //A single CLI argument. Hopefully it's the hostname
   if(argc == 2)
@@ -21,13 +26,23 @@ int main(int argc, char* argv[])
     //Cool use of function pointers
     signal(SIGINT, controlCSignalHandler);
 
-    //Prompt the user for their name
-    cout << "Please enter a username: ";
-    cin >> username;
+    //Get a pointer to a host
+    hostPointer = gethostbyname(argv[1]);
+
+    if(hostPointer != NULL)
+    {
+
+    }
+    else
+    {
+      cout << "Error: Hostename \"" << argv[1] << "\" is not valid. Please try again" << endl;
+      exit(1);
+    }
   }
   else
   {
     std::cout << "Error: No hostname provided. Usage: " << argv[0] << " hostname" << endl;
+    exit(1);
   }
   return 0;
 }
