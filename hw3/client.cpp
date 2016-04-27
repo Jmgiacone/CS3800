@@ -59,7 +59,7 @@ int main(int argc, char* argv[])
     }
     else
     {
-      cout << "Error: Hostename \"" << argv[1] << "\" is not valid. Please try again" << endl;
+      cout << "Error: Hostname \"" << argv[1] << "\" is not valid. Please try again" << endl;
       exit(1);
     }
   }
