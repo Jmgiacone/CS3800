@@ -3,6 +3,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h>
+#include <strings.h>
 
 using std::cout;
 using std::cin;
@@ -15,7 +16,7 @@ void controlCSignalHandler(int signal);
 int main(int argc, char* argv[])
 {
   string username = "";
-  int clientId = 0;
+  int socketNum = 0;
   struct sockaddr_in host = {AF_INET, htons(PORT_NUMBER)};
   struct hostent *hostPointer;
 
@@ -31,7 +32,30 @@ int main(int argc, char* argv[])
 
     if(hostPointer != NULL)
     {
+      //Copy our hostPointer address to our sockaddr_in struct
+      bcopy( hostPointer->h_addr_list[0], (char*)&host.sin_addr, hostPointer->h_length );
 
+      //Reserve the socket
+      socketNum = socket(AF_INET, SOCK_STREAM, 0);
+
+      if(socketNum != -1)
+      {
+        if(connect(socketNum, (struct sockaddr*)&host, sizeof(host) ) != -1)
+        {
+          cout << "Connection successful!\nPlease enter a username: ";
+          cin >> username;
+        }
+        else
+        {
+          cout << "Error: Socket connection failed. Please try again" << endl;
+          exit(1);
+        }
+      }
+      else
+      {
+        cout << "Error: Failed to bind to socket. Please try again";
+        exit(1);
+      }
     }
     else
     {
