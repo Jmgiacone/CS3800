@@ -109,7 +109,7 @@ int main(int argc, char* argv[])
 
 void controlCSignalHandler(int signal)
 {
-  cout << "Please don't exit the client with ctl-c. Only use /exit, /part, or /quit" << endl;
+  cout << "\nPlease don't exit the client with ctl-c. Only use /exit, /part, or /quit" << endl;
 }
 
 void* readFromServer(void* argument)
