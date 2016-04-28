@@ -12,7 +12,7 @@ using std::cout;
 using std::cin;
 using std::endl;
 using std::string;
-const int PORT_NUMBER = 9999;
+const int PORT_NUMBER = 9993;
 
 void controlCSignalHandler(int signal);
 void* readFromServer(void* argument);
@@ -54,7 +54,7 @@ int main(int argc, char* argv[])
         {
           cout << "Connection successful!\nPlease enter a username: ";
           cin >> username;
-          string str = username + "has joined the chat\n";
+          string str = username + " has joined the chat\n";
           write(socketNum, str.c_str(), BUFFER_SIZE);
 
           //Try to create the reading thread
@@ -65,8 +65,8 @@ int main(int argc, char* argv[])
               pthread_join(readThread, NULL);
               pthread_join(writeThread, NULL);
 
-              pthread_exit(&readThread);
               pthread_exit(&writeThread);
+              pthread_exit(&readThread);
             }
             else
             {
@@ -113,12 +113,13 @@ void controlCSignalHandler(int signal)
 
 void* readFromServer(void* argument)
 {
+  cout << "Read from" << endl;
   string str;
 
   while(true)
   {
     pthread_mutex_lock(&mutex);
-    read(socketNum, buffer, 512);
+    read(socketNum, buffer, BUFFER_SIZE);
 
     str = buffer;
     pthread_mutex_unlock(&mutex);
@@ -128,6 +129,7 @@ void* readFromServer(void* argument)
       return NULL;
     }
     cout << str << endl;
+    pthread_yield();
   }
 }
 
@@ -135,18 +137,20 @@ void* writeToServer(void* argument)
 {
   char* x;
   string sx = username + ": ";
-  char* s;
+  char* s = new char[BUFFER_SIZE];
   strcpy(s, sx.c_str());
   while(true)
   {
+    strcpy(s, sx.c_str());
+    cout << sx;
     pthread_mutex_lock(&mutex);
     x = gets(buffer);
-
     if(x == NULL)
     {
       return NULL;
     }
     write(socketNum, strcat(s, buffer), BUFFER_SIZE);
     pthread_mutex_unlock(&mutex);
+    pthread_yield();
   }
 }
