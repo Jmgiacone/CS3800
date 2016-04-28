@@ -17,13 +17,14 @@ const int PORT_NUMBER = 9993;
 void controlCSignalHandler(int signal);
 void* readFromServer(void* argument);
 void* writeToServer(void* argument);
+bool isQuitCommand(char* x);
 
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 const int BUFFER_SIZE = 512;
 int socketNum = -1;
-char buffer[BUFFER_SIZE];
 const string QUIT_COMMAND = "/quit";
 string username = "";
+bool quitting = false;
 int main(int argc, char* argv[])
 {
   struct sockaddr_in host = {AF_INET, htons(PORT_NUMBER)};
@@ -100,7 +101,7 @@ int main(int argc, char* argv[])
   }
   else
   {
-    std::cout << "Error: No hostname provided. Usage: " << argv[0] << " hostname" << endl;
+    cout << "Error: No hostname provided. Usage: " << argv[0] << " hostname" << endl;
     exit(1);
   }
   return 0;
@@ -108,26 +109,28 @@ int main(int argc, char* argv[])
 
 void controlCSignalHandler(int signal)
 {
-  cout << "Please don't exit the client with ctl-c. Only use /exit, /part, or /quit";
+  cout << "Please don't exit the client with ctl-c. Only use /exit, /part, or /quit" << endl;
 }
 
 void* readFromServer(void* argument)
 {
-  cout << "Read from" << endl;
   string str;
+  char buffer[BUFFER_SIZE];
 
-  while(true)
+  while(!quitting)
   {
-    pthread_mutex_lock(&mutex);
+    //pthread_mutex_lock(&mutex);
     read(socketNum, buffer, BUFFER_SIZE);
 
     str = buffer;
-    pthread_mutex_unlock(&mutex);
+    //pthread_mutex_unlock(&mutex);
+
     //Server told client to quit
     if(str == QUIT_COMMAND)
     {
-      return NULL;
+      quitting = true;
     }
+
     cout << str << endl;
     pthread_yield();
   }
@@ -135,22 +138,42 @@ void* readFromServer(void* argument)
 
 void* writeToServer(void* argument)
 {
+  string message;
+  char buffer[BUFFER_SIZE];
   char* x;
   string sx = username + ": ";
   char* s = new char[BUFFER_SIZE];
   strcpy(s, sx.c_str());
-  while(true)
+  while(!quitting)
   {
     strcpy(s, sx.c_str());
-    cout << sx;
-    pthread_mutex_lock(&mutex);
-    x = gets(buffer);
+
+    //pthread_mutex_lock(&mutex);
+    /*x = gets(buffer);
     if(x == NULL)
     {
       return NULL;
+    }*/
+
+    cin >> message;
+    strcpy(buffer, message.c_str());
+    if(isQuitCommand(buffer))
+    {
+      cout << "Quitting..." << endl;
+      quitting = true;
     }
-    write(socketNum, strcat(s, buffer), BUFFER_SIZE);
-    pthread_mutex_unlock(&mutex);
+
+    //Don't send blank lines
+    if(strcmp(buffer, "") != 0)
+    {
+      write(socketNum, strcat(s, buffer), BUFFER_SIZE);
+    }
+    //pthread_mutex_unlock(&mutex);
     pthread_yield();
   }
+}
+
+bool isQuitCommand(char* x)
+{
+  return strcmp(x, "/quit") == 0  || strcmp(x, "/part") == 0 || strcmp(x, "/exit") == 0;
 }
