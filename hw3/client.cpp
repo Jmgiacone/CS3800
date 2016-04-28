@@ -25,11 +25,11 @@ int socketNum = -1;
 const string QUIT_COMMAND = "/quit";
 string username = "";
 bool quitting = false;
+pthread_t readThread, writeThread;
 int main(int argc, char* argv[])
 {
   struct sockaddr_in host = {AF_INET, htons(PORT_NUMBER)};
   struct hostent *hostPointer;
-  pthread_t readThread, writeThread;
 
   //A single CLI argument. Hopefully it's the hostname
   if(argc == 2)
@@ -68,6 +68,8 @@ int main(int argc, char* argv[])
 
               pthread_exit(&writeThread);
               pthread_exit(&readThread);
+
+              close(socketNum);
             }
             else
             {
@@ -131,19 +133,21 @@ void* readFromServer(void* argument)
       quitting = true;
     }
 
-    cout << str << endl;
+    cout << "Server says: " << str << endl;
     pthread_yield();
   }
+
+  return NULL;
 }
 
 void* writeToServer(void* argument)
 {
   string message;
   char buffer[BUFFER_SIZE];
-  char* x;
   string sx = username + ": ";
   char* s = new char[BUFFER_SIZE];
   strcpy(s, sx.c_str());
+
   while(!quitting)
   {
     strcpy(s, sx.c_str());
@@ -159,7 +163,7 @@ void* writeToServer(void* argument)
     strcpy(buffer, message.c_str());
     if(isQuitCommand(buffer))
     {
-      cout << "Quitting..." << endl;
+      cout << "Valid quit command detected. Now quitting..." << endl;
       quitting = true;
     }
 
@@ -171,6 +175,8 @@ void* writeToServer(void* argument)
     //pthread_mutex_unlock(&mutex);
     pthread_yield();
   }
+
+  return NULL;
 }
 
 bool isQuitCommand(char* x)
