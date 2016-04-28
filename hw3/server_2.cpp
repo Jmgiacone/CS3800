@@ -82,6 +82,7 @@ int main()
     while( (k = read(ns, buf, sizeof(buf))) != 0)
     {    printf("SERVER(Parent) RECEIVED: %s\n", buf);
          write(ns, buf, k);
+         write(ns, "ff", 2);
     }
     close(ns);
     close(sd);
