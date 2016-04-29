@@ -70,7 +70,7 @@ int main(int argc, char* argv[])
               //pthread_exit(&readThread);
 
               close(socketNum);
-
+              unlink((const char*) &host.sin_addr);
               return 0;
             }
             else
@@ -123,19 +123,20 @@ void* readFromServer(void* argument)
   while(!quitting)
   {
     bzero(buffer, BUFFER_SIZE);
-    //pthread_mutex_lock(&mutex);
     read(socketNum, buffer, BUFFER_SIZE);
 
     str = buffer;
-    //pthread_mutex_unlock(&mutex);
 
     //Server told client to quit
     if(str == QUIT_COMMAND)
     {
+      cout << ">>" << str << endl;
+      cout << "Server sent quit command. Quitting..." << endl;
       quitting = true;
     }
 
-    cout << "Server says: " << str << endl;
+    //cout << "Server says: " << str << endl;
+    cout << str << endl;
     pthread_yield();
   }
 
@@ -144,14 +145,13 @@ void* readFromServer(void* argument)
 
 void* writeToServer(void* argument)
 {
-  string message;
   char buffer[BUFFER_SIZE];
 
   while(!quitting)
   {
     bzero(buffer, BUFFER_SIZE);
-    cin >> message;
-    strcpy(buffer, message.c_str());
+    cin.getline(buffer, BUFFER_SIZE);
+
     if(isQuitCommand(buffer))
     {
       cout << "Valid quit command detected. Now quitting..." << endl;
@@ -161,9 +161,9 @@ void* writeToServer(void* argument)
     //Don't send blank lines
     if(strcmp(buffer, "") != 0)
     {
+      //cout << "About to send this to server: " << buffer << endl;
       write(socketNum, buffer, BUFFER_SIZE);
     }
-    //pthread_mutex_unlock(&mutex);
     pthread_yield();
   }
 
