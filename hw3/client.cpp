@@ -67,8 +67,6 @@ int main(int argc, char* argv[])
               pthread_join(readThread, NULL);
               pthread_join(writeThread, NULL);
 
-              pthread_exit(&readThread);
-              pthread_exit(&writeThread);
               //Close the socket
               close(socketNum);
 
@@ -133,14 +131,14 @@ void* readFromServer(void* argument)
     str = buffer;
 
     //Server told client to quit
-    if(str == QUIT_COMMAND)
+    if(isQuitCommand(buffer))
     {
       cout << "Server sent quit command. Quitting..." << endl;
       pthread_cancel(writeThread);
       quitting = true;
     }
 
-    if(str != "" && str != "\n" && str != QUIT_COMMAND)
+    if(str != "" && str != "\n" && !isQuitCommand(buffer))
     {
       cout << str << endl;
     }
