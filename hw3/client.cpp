@@ -1,3 +1,13 @@
+/**
+ * Programmers: Jordan Giacone and Shae Bolt
+ * Class: CS3800
+ * Section: Jordan - A, Shae - B
+ * Instructor: Fikret Ercal
+ * Date: 4/28/16
+ * Filename: client.cpp
+ * Description: The client file to read and write data to the server written in server.cpp
+ */
+
 #include <iostream>
 #include <signal.h>
 #include <sys/socket.h>
@@ -19,15 +29,13 @@ void* readFromServer(void* argument);
 void* writeToServer(void* argument);
 bool isQuitCommand(char* x);
 
-pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 const int BUFFER_SIZE = 512;
 int socketNum = -1;
-const string QUIT_COMMAND = "/quit";
-string username = "";
 bool quitting = false;
 pthread_t readThread, writeThread;
 int main(int argc, char* argv[])
 {
+  string username = "";
   struct sockaddr_in host = {AF_INET, htons(PORT_NUMBER)};
   struct hostent *hostPointer;
 
@@ -138,6 +146,7 @@ void* readFromServer(void* argument)
       quitting = true;
     }
 
+    //Don't output blank lines or newlines or quit commands
     if(str != "" && str != "\n" && !isQuitCommand(buffer))
     {
       cout << str << endl;
