@@ -39,6 +39,7 @@
 #include <netinet/in.h>  /* define internet socket */
 #include <netdb.h>       /* define internet socket */
 #include <pthread.h>
+#include <signal.h>
 
 #define SERVER_PORT 9993        /* define a server port number */
 #define MAX_CLIENT 100
@@ -47,6 +48,7 @@ void *input_thread(void *arg);
 void *server_thread(void *arg);
 void *main_thread(void* arg);
 void *client_messenger(void* arg);
+void cntrlc_signal_handle(int signal);
 
 pthread_mutex_t stop_lock;
 pthread_mutex_t file_descriptor_lock;
@@ -61,11 +63,11 @@ int file_descriptor_array[MAX_CLIENT]; /* allocate as many file descriptors
 pthread_t input_handler;
 pthread_t client_handler;
 pthread_t client_handlers[100];
-int counter = 0;
+int counter;
 
 int main()
 {
-
+  signal(SIGINT, cntrlc_signal_handle);
   server_addr =
   { AF_INET, htons( SERVER_PORT)};
   client_addr =
@@ -86,6 +88,11 @@ int main()
     perror("server: socket failed");
     exit(1);
   }
+  int enable = 1;
+  if (setsockopt(sd, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) < 0)
+  {
+    perror("setsockopt(SO_REUSEADDR) failed");
+  }
 
   /* bind the socket to an internet port */
   if (bind(sd, (struct sockaddr*) &server_addr, sizeof(server_addr)) == -1)
@@ -102,23 +109,32 @@ int main()
    }
    */
 
-
   if (listen(sd, 10) == -1)
   {
     perror("server: listen failed");
     exit(1);
   }
   printf("SERVER is listening for clients to establish a connection\n");
-  while((ns = accept(sd, (struct sockaddr*) &client_addr, &client_len)) > 0)
+  while (((ns = accept(sd, (struct sockaddr*) &client_addr, &client_len)) > 0)
+      && !stop)
   {
     pthread_mutex_lock(&file_descriptor_lock);
-    file_descriptor_array[counter] = ns; /* first check for room here though */
-    pthread_mutex_unlock(&file_descriptor_lock);
-    pthread_create(&client_handlers[counter++], NULL, client_messenger, (void*)&file_descriptor_array[counter]);
-    counter++;
+    if (counter < 100)
+    {
+      file_descriptor_array[counter] = ns; /* first check for room here though */
+      pthread_create(&client_handlers[counter], NULL, client_messenger,
+          (void*) &file_descriptor_array[counter]);
+      pthread_mutex_unlock(&file_descriptor_lock);
+      counter++;
+    }
+    else
+    {
+      std::cerr << "Error too many threads" << std::endl;
+    }
   }
-  pthread_join(input_handler, NULL);
-  pthread_join(client_handler, NULL);
+  //std::cout << "Why are you ending?" << std::endl;
+  //pthread_join(input_handler, NULL);
+  //pthread_join(client_handler, NULL);
   //pthread_join(input_handler, NULL);
   //pthread_join(client_handler, NULL);
   close(sd);
@@ -133,6 +149,42 @@ int main()
   return (0);
 }
 
+void cntrlc_signal_handle(int signal)
+{
+  std::cout << "\nCNTRLC detected" << std::endl;
+  char message_buffer[512] = "ADVISIO: EL SERVIDOR SE APAGARÀ EN 10 SEGUNDOS\n";
+  char quit_msg[32] = "/quit";
+  for (int i = 0; i < counter; i++)
+  {
+    //std::cout << "i " << i << std::endl;
+    //client_handlers[i];
+    write(file_descriptor_array[i], message_buffer, sizeof(message_buffer));
+    //std::cout << "i " << i << std::endl;
+  }
+  for (int i = 0; i < counter; i++)
+  {
+    std::cout << "sending qm" << std::endl;
+    write(file_descriptor_array[i], quit_msg, sizeof(quit_msg));
+  }
+  sleep(10);
+  pthread_mutex_lock(&stop_lock);
+  stop = true;
+  pthread_mutex_unlock(&stop_lock);
+  //std::cout << "canceling done" << std::endl;
+  for (int i = 0; i < counter; i++)
+  {
+    //std::cout << "canceling i " << i << std::endl;
+    //std::cout << "i " << i << std::endl;
+    pthread_cancel(client_handlers[i]);
+    //std::cout << "i " << i << std::endl;
+  }
+  //std::cout << "canceling done" << std::endl;
+  pthread_cancel(input_handler);
+  close(sd);
+  unlink((const char*) &server_addr.sin_addr);
+  //pthread_yield();
+}
+
 void *input_thread(void *arg)
 {
   pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, NULL);
@@ -144,6 +196,7 @@ void *input_thread(void *arg)
 
   while (1)
   {
+
     //puts((char*) arg);
     char temp[20] = "";
     std::cin >> temp;
@@ -158,120 +211,103 @@ void *input_thread(void *arg)
       stop = true;
 
       pthread_mutex_unlock(&stop_lock);
+
+      char message_buffer[512] = "/quit";
+      pthread_mutex_lock(&file_descriptor_lock);
       for (int i = 0; i < counter; i++)
       {
+        write(file_descriptor_array[i], message_buffer, sizeof(message_buffer));
+      }
+      pthread_mutex_unlock(&file_descriptor_lock);
+
+      for (int i = 0; i < counter; i++)
+      {
+        std::cout << "canceling i " << i << std::endl;
+        //std::cout << "i " << i << std::endl;
         pthread_cancel(client_handlers[i]);
+        //std::cout << "i " << i << std::endl;
       }
       pthread_exit(0);
+
     }
     pthread_yield();
   }
 }
 
-/*
- void *server_thread(void *arg)
- {
- pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS,NULL);
- while (!pthread_mutex_trylock(&stop_lock) && !stop)
- {
- //std::cout << (stop ? "TRUE " : "FALSE ") << std::endl;
- pthread_mutex_unlock(&stop_lock);
- /* listen for clients
- if (listen(sd, 4) == -1)
- {
- perror("server: listen failed");
- exit(1);
- }
-
- printf("SERVER is listening for clients to establish a connection\n");
-
- if ((ns = accept(sd, (struct sockaddr*) &client_addr, &client_len)) == -1)
- {
- perror("server: accept failed");
- exit(1);
- }
-
- printf(
- "accept() successful.. a client has connected! waiting for a message\n");
-
- /* data transfer on connected socket ns
- while ((k = read(ns, buf, sizeof(buf))) != 0 && !stop)
- {
- printf("SERVER RECEIVED: %s\n", buf);
- write(ns, buf, k);
- //write(ns, temp, sizeof(temp));
- }
-
-
- }
- }
- */
-
-/*
- void *main_thread(void* arg)
- {
- pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS,NULL);
- if (listen(sd, 10) == -1)
- {
- perror("server: listen failed");
- exit(1);
- }
- while((ns = accept(sd, (struct sockaddr*) &client_addr, &client_len)) > 0)
- {
- pthread_mutex_lock(&file_descriptor_lock);
- file_descriptor_array[counter++] = ns; /* first check for room here though ///
- pthread_mutex_unlock(&file_descriptor_lock);
- pthread_create(&client_handlers[counter++], NULL, input_thread, (void*)&file_descriptor_array[counter]);
- }
- //pthread_join(input_handler, NULL);
- //pthread_join(client_handler, NULL);
- close(sd);
- unlink((const char*) &server_addr.sin_addr);
- pthread_exit(0);
- }
- */
-
 void *client_messenger(void* arg) /* what does 'bob' do ? */
 {
   pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, NULL);
-  printf("Child accept() successful.. a client has connected to child ! waiting for a message\n");
+  printf(
+      "Child accept() successful.. a client has connected to child ! waiting for a message\n");
   //this is FD, fd, or file descriptor
   char buf[512];
   int some_fd = *(int*) arg;
-  std::cout << some_fd << std::endl;
+  //std::cout << some_fd << std::endl;
   char host_name[100];
   gethostname(host_name, 100);
   char client_name[512];
   char message_buffer[100 + 512];
   char server_message[100];
-  std::cout << "hello " << std::endl;
+
   while ((k = read(some_fd, buf, sizeof(buf))) != 0)
   {
-    std::cout << "hello" << std::endl;
-    strcpy(message_buffer, "HELLO ");
+    strcpy(message_buffer, "Hello User ");
     strcpy(client_name, buf);
     strncat(message_buffer, client_name, 512);
-    printf("GIVEN MESSAGE: %s\n", buf);
+    strncat(message_buffer, "\n", 3);
+    //printf("GIVEN MESSAGE: %s\n", buf);
+
+    pthread_mutex_lock(&file_descriptor_lock);
     for (int i = 0; i < counter; i++)
     {
-      write(file_descriptor_array[i], message_buffer, k);
+      write(file_descriptor_array[i], message_buffer, sizeof(message_buffer));
     }
+    pthread_mutex_unlock(&file_descriptor_lock);
     break;
   }
   while ((k = read(some_fd, buf, sizeof(buf))) != 0 && !stop)
   {
+    bzero(message_buffer, 512 + 100);
     printf("SERVER RECEIVED: %s\n", buf);
-    strcpy(message_buffer, client_name);
-    strncat(message_buffer, " says:", 6);
+    if (strcmp(buf, "/quit") == 0)
+    {
+      break;
+    }
 
+    strcpy(message_buffer, ">> ");
+    strncat(message_buffer, client_name, sizeof(client_name));
+    strncat(message_buffer, ": ", 8);
+    strncat(message_buffer, buf, 512);
+    strncat(message_buffer, "\n", 3);
+    //std::cout << message_buffer << std::endl;
+    pthread_mutex_lock(&file_descriptor_lock);
+    //std::cout << "done messaging 1" << std::endl;
     for (int i = 0; i < counter; i++)
     {
-      write(file_descriptor_array[i], message_buffer, k);
+      if (file_descriptor_array[i] != some_fd)
+      {
+        std::cout << "Messaging user i = " << i << std::endl;
+        write(file_descriptor_array[i], message_buffer, sizeof(message_buffer));
+      }
     }
+    //std::cout << "done messaging 3" << std::endl;
     pthread_mutex_unlock(&file_descriptor_lock);
+    pthread_yield();
   }
 
   pthread_mutex_lock(&file_descriptor_lock);
+  bzero(message_buffer, 512 + 100);
+  strcpy(message_buffer, "User ");
+  strncat(message_buffer, client_name, sizeof(client_name));
+  strncat(message_buffer, " has disconnected.", 24);
+  for (int i = 0; i < counter; i++)
+  {
+    if (file_descriptor_array[i] != some_fd)
+    {
+      //std::cout << "done messaging 2" << std::endl;
+      write(file_descriptor_array[i], message_buffer, sizeof(message_buffer));
+    }
+  }
   int i = 0;
   while ((file_descriptor_array[i] != some_fd))
   {
@@ -284,6 +320,6 @@ void *client_messenger(void* arg) /* what does 'bob' do ? */
   }
   pthread_mutex_unlock(&file_descriptor_lock);
   close(some_fd);
+  std::cout << "EXITING THREAD" << std::endl;
   pthread_exit(0);
-
 }
