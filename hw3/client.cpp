@@ -55,8 +55,8 @@ int main(int argc, char* argv[])
         {
           cout << "Connection successful!\nPlease enter a username: ";
           cin >> username;
-          string str = username + " has joined the chat\n";
-          write(socketNum, str.c_str(), BUFFER_SIZE);
+          string str = username;
+          write(socketNum, str.c_str(), strlen(str.c_str()));
 
           //Try to create the reading thread
           if(pthread_create(&readThread, NULL, readFromServer, NULL) == 0)
@@ -66,10 +66,12 @@ int main(int argc, char* argv[])
               pthread_join(readThread, NULL);
               pthread_join(writeThread, NULL);
 
-              pthread_exit(&writeThread);
-              pthread_exit(&readThread);
+              //pthread_exit(&writeThread);
+              //pthread_exit(&readThread);
 
               close(socketNum);
+
+              return 0;
             }
             else
             {
@@ -106,7 +108,6 @@ int main(int argc, char* argv[])
     cout << "Error: No hostname provided. Usage: " << argv[0] << " hostname" << endl;
     exit(1);
   }
-  return 0;
 }
 
 void controlCSignalHandler(int signal)
@@ -121,6 +122,7 @@ void* readFromServer(void* argument)
 
   while(!quitting)
   {
+    bzero(buffer, BUFFER_SIZE);
     //pthread_mutex_lock(&mutex);
     read(socketNum, buffer, BUFFER_SIZE);
 
@@ -144,21 +146,10 @@ void* writeToServer(void* argument)
 {
   string message;
   char buffer[BUFFER_SIZE];
-  string sx = username + ": ";
-  char* s = new char[BUFFER_SIZE];
-  strcpy(s, sx.c_str());
 
   while(!quitting)
   {
-    strcpy(s, sx.c_str());
-
-    //pthread_mutex_lock(&mutex);
-    /*x = gets(buffer);
-    if(x == NULL)
-    {
-      return NULL;
-    }*/
-
+    bzero(buffer, BUFFER_SIZE);
     cin >> message;
     strcpy(buffer, message.c_str());
     if(isQuitCommand(buffer))
@@ -170,7 +161,7 @@ void* writeToServer(void* argument)
     //Don't send blank lines
     if(strcmp(buffer, "") != 0)
     {
-      write(socketNum, strcat(s, buffer), BUFFER_SIZE);
+      write(socketNum, buffer, BUFFER_SIZE);
     }
     //pthread_mutex_unlock(&mutex);
     pthread_yield();
