@@ -23,7 +23,7 @@
 //server port
 #define SERVER_PORT 9993
 //max number of clients
-#define MAX_CLIENT 100
+#define MAX_CLIENT 10
 
 //handles clients on a per client basis and is responsible for sending messages out to all clients
 //these threads are removed if a client disconnects or the server is shutdown
@@ -114,7 +114,9 @@ int main()
     }
     else
     {
-      std::cerr << "Error too many threads" << std::endl;
+      std::cerr
+          << "Error too many threads, a client tried to connect when the max number of clients "
+          << MAX_CLIENT << " was met." << std::endl;
     }
   }
 
