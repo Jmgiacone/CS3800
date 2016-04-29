@@ -179,7 +179,7 @@ void *client_messenger(void* arg) /* what does 'bob' do ? */
     strcpy(message_buffer, "User ");
     strcpy(client_name, buf);
     strncat(message_buffer, client_name, 512);
-    strncat(message_buffer, " has joined the channel\n", 3);
+    strncat(message_buffer, " has joined the channel\n", 512);
     //printf("GIVEN MESSAGE: %s\n", buf);
 
     pthread_mutex_lock(&file_descriptor_lock);
