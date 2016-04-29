@@ -63,13 +63,16 @@ int main(int argc, char* argv[])
           {
             if(pthread_create(&writeThread, NULL, writeToServer, NULL) == 0)
             {
+              //Wait for the threads to terminate
               pthread_join(readThread, NULL);
               pthread_join(writeThread, NULL);
 
-              //pthread_exit(&writeThread);
-              //pthread_exit(&readThread);
-
+              pthread_exit(&readThread);
+              pthread_exit(&writeThread);
+              //Close the socket
               close(socketNum);
+
+              //Unlink from the server
               unlink((const char*) &host.sin_addr);
               return 0;
             }
@@ -117,6 +120,8 @@ void controlCSignalHandler(int signal)
 
 void* readFromServer(void* argument)
 {
+  //Pre-processor command to allow threads to cancel
+  pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, NULL);
   string str;
   char buffer[BUFFER_SIZE];
 
@@ -130,13 +135,15 @@ void* readFromServer(void* argument)
     //Server told client to quit
     if(str == QUIT_COMMAND)
     {
-      cout << ">>" << str << endl;
       cout << "Server sent quit command. Quitting..." << endl;
+      pthread_cancel(writeThread);
       quitting = true;
     }
 
-    //cout << "Server says: " << str << endl;
-    cout << str << endl;
+    if(str != "" && str != "\n" && str != QUIT_COMMAND)
+    {
+      cout << str << endl;
+    }
     pthread_yield();
   }
 
@@ -145,23 +152,27 @@ void* readFromServer(void* argument)
 
 void* writeToServer(void* argument)
 {
+  pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, NULL);
   char buffer[BUFFER_SIZE];
 
   while(!quitting)
   {
     bzero(buffer, BUFFER_SIZE);
-    cin.getline(buffer, BUFFER_SIZE);
+    if(!quitting)
+    {
+      cin.getline(buffer, BUFFER_SIZE);
+    }
 
     if(isQuitCommand(buffer))
     {
-      cout << "Valid quit command detected. Now quitting..." << endl;
+      cout << "Quit command detected. Now quitting..." << endl;
+      pthread_cancel(readThread);
       quitting = true;
     }
 
     //Don't send blank lines
-    if(strcmp(buffer, "") != 0)
+    if(strcmp(buffer, "") != 0 && strcmp(buffer, "\n") != 0)
     {
-      //cout << "About to send this to server: " << buffer << endl;
       write(socketNum, buffer, BUFFER_SIZE);
     }
     pthread_yield();
@@ -172,5 +183,6 @@ void* writeToServer(void* argument)
 
 bool isQuitCommand(char* x)
 {
+  //Check to see if x is one of the 3 quit commands
   return strcmp(x, "/quit") == 0  || strcmp(x, "/part") == 0 || strcmp(x, "/exit") == 0;
 }
