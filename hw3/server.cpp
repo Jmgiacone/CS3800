@@ -23,7 +23,7 @@
 //server port
 #define SERVER_PORT 9993
 //max number of clients
-#define MAX_CLIENT 10
+#define MAX_CLIENT 100
 
 //handles clients on a per client basis and is responsible for sending messages out to all clients
 //these threads are removed if a client disconnects or the server is shutdown
@@ -149,12 +149,14 @@ void cntrlc_signal_handle(int signal)
   stop = true;
   pthread_mutex_unlock(&stop_lock);
 
+  pthread_mutex_lock(&file_descriptor_lock);
   for (int i = 0; i < counter; i++)
   {
 
     pthread_cancel(client_handlers[i]);
 
   }
+  pthread_mutex_unlock(&file_descriptor_lock);
   close(stream_socket);
   unlink((const char*) &server_addr.sin_addr);
 
